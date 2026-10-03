@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: FirstFlush India API - local fallback remains available for development
+Description: FirstFlush India API
 Globals:
   Function:
     Runtime: nodejs20.x
@@ -14,36 +14,14 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
-      Handler: server.handler
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref LocationsTable
-        - S3CrudPolicy:
-            BucketName: !Ref EvidenceBucket
+      Handler: lambda.handler
       Events:
         Api:
           Type: HttpApi
           Properties:
             Path: /{proxy+}
             Method: ANY
-  LocationsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
-      KeySchema:
-        - AttributeName: id
-          KeyType: HASH
-  EvidenceBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
 Outputs:
   ApiUrl:
+    Description: API URL; configure it in public/config.js for a separately hosted Amplify frontend.
     Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com
