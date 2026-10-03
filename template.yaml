@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: FirstFlush India API
+Description: FirstFlush India API demo deployment
 Globals:
   Function:
     Runtime: nodejs20.x
@@ -23,5 +23,5 @@ Resources:
             Method: ANY
 Outputs:
   ApiUrl:
-    Description: API URL; configure it in public/config.js for a separately hosted Amplify frontend.
+    Description: API Gateway URL. Set this as API_BASE_URL in public/config.js for separate Amplify hosting.
     Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com

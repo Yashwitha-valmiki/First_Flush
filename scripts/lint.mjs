@@ -1,10 +1,13 @@
 import fs from 'node:fs';
-import path from 'node:path';
-const files = ['server.js', 'lambda.js', 'public/index.html', 'public/app.js', 'public/styles.css'];
+import { spawnSync } from 'node:child_process';
+
+const files = ['server.js', 'lambda.js', 'public/app.js', 'scripts/build.mjs', 'scripts/lint.mjs'];
 for (const file of files) {
-  if (!fs.existsSync(path.resolve(file)) || fs.statSync(path.resolve(file)).size === 0) {
-    console.error(`Invalid or empty file: ${file}`);
-    process.exit(1);
+  if (!fs.existsSync(file) || fs.statSync(file).size === 0) throw new Error(`Missing or empty file: ${file}`);
+  const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
+  if (result.status !== 0) {
+    process.stderr.write(result.stderr || 'Syntax check failed\n');
+    process.exit(result.status || 1);
   }
 }
-console.log('FirstFlush lint preflight passed.');
+console.log('JavaScript syntax and repository preflight passed.');
