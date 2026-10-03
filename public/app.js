@@ -2,22 +2,87 @@ const config = window.FIRSTFLUSH_CONFIG || {};
 const API = String(config.API_BASE_URL || '').replace(/\/$/, '');
 let state = { locations: [], actions: [], observations: [] };
 let map;
+let loading = false;
 const $ = id => document.getElementById(id);
 const api = path => `${API}/api${path}`;
 const riskClass = level => level === 'Very high' ? 'very-high' : String(level).toLowerCase();
 const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
 function query() { return new URLSearchParams({ state: $('state').value, city: $('city').value, dryDays: $('dryDays').value, rainfall: $('rainfall').value }); }
 function setStatus(text, kind = 'live') { $('status').textContent = text; $('status').dataset.kind = kind; }
-async function load() { try { const response = await fetch(`${api('/state')}?${query()}`); if (!response.ok) throw new Error('API unavailable'); state = await response.json(); render(); setStatus(`Live API · ${new Date().toLocaleTimeString()}`); await loadWeather(); } catch (error) { setStatus('Offline · retrying automatically', 'offline'); } }
+function notify(message, kind = 'success') {
+  const feedback = $('feedback');
+  feedback.textContent = message;
+  feedback.className = `feedback ${kind}`;
+}
+async function parseError(response, fallback) {
+  try {
+    const body = await response.json();
+    return body?.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
+async function load() {
+  if (loading) return;
+  loading = true;
+  try {
+    const response = await fetch(`${api('/state')}?${query()}`);
+    if (!response.ok) throw new Error('API unavailable');
+    state = await response.json();
+    render();
+    setStatus(`Live API · ${new Date().toLocaleTimeString()}`);
+    notify('', 'success');
+    await loadWeather();
+  } catch (error) {
+    setStatus('Offline · retrying automatically', 'offline');
+    notify('Unable to refresh live data. Showing last available state.', 'error');
+  } finally {
+    loading = false;
+  }
+}
 async function loadWeather() { const top = state.locations[0]; if (!top) return; try { const response = await fetch(api(`/weather?lat=${top.lat}&lon=${top.lon}`)); const weather = await response.json(); $('rain').textContent = weather.rainMm === undefined ? '—' : `${weather.rainMm} mm`; $('weatherMeta').textContent = `${weather.source} · ${weather.mode} · ${weather.updatedAt ? new Date(weather.updatedAt).toLocaleTimeString() : 'no timestamp'}`; } catch { $('weatherMeta').textContent = 'Weather unavailable'; } }
 function render() { const critical = state.locations.filter(item => item.level === 'Very high').length; $('dryMetric').textContent = $('dryDays').value; $('count').textContent = state.locations.length; $('critical').textContent = critical; $('pending').textContent = state.actions.filter(item => !['Completed', 'Verified'].includes(item.status)).length; $('priority').innerHTML = `<div class="priority-list">${state.locations.slice(0, 5).map((location, index) => `<div class="priority-item"><h3>${index + 1}. ${esc(location.name)}</h3><p>${esc(location.city)}, ${esc(location.state)} · <b>${esc(location.level)} · ${location.riskScore}/100</b></p><p>${esc(location.recommendation)}</p><button class="button secondary" data-focus="${esc(location.id)}">View factors</button></div>`).join('')}</div>`; $('list').innerHTML = state.locations.map(location => `<button class="location-card" data-focus="${esc(location.id)}"><strong>${esc(location.name)}</strong><span>${esc(location.city)} · <span class="risk ${riskClass(location.level)}">${esc(location.level)} ${location.riskScore}</span></span><small>Confidence: ${esc(location.confidence)} · ${esc(location.coverage)}</small></button>`).join(''); $('actionLocation').innerHTML = state.locations.map(location => `<option value="${esc(location.id)}">${esc(location.name)} · ${esc(location.city)}</option>`).join(''); $('obsLocation').innerHTML = $('actionLocation').innerHTML; $('actionList').innerHTML = state.actions.slice(0, 8).map(action => `<div class="action-card"><span><b>${esc(action.type)}</b><br><small>${esc(action.locationId)} · ${new Date(action.createdAt).toLocaleString()}</small></span><select data-action="${esc(action.id)}" aria-label="Update action status"><option ${action.status === 'Pending' ? 'selected' : ''}>Pending</option><option ${action.status === 'Assigned' ? 'selected' : ''}>Assigned</option><option ${action.status === 'In progress' ? 'selected' : ''}>In progress</option><option ${action.status === 'Completed' ? 'selected' : ''}>Completed</option><option ${action.status === 'Verified' ? 'selected' : ''}>Verified</option><option ${action.status === 'Rejected' ? 'selected' : ''}>Rejected</option></select></div>`).join(''); drawMap(); }
 function drawMap() { const canvas = $('mapCanvas'); if (!window.L) { canvas.innerHTML = '<div class="map-fallback">Map library unavailable. Use the accessible priority list below.</div>'; return; } if (!map) { map = L.map(canvas).setView([22.5, 79], 5); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map); } if (map._firstFlushLayer) map.removeLayer(map._firstFlushLayer); const layer = L.layerGroup(); state.locations.forEach(location => { const marker = L.circleMarker([location.lat, location.lon], { radius: 9, color: '#fff', weight: 2, fillColor: location.level === 'Very high' ? '#c53030' : location.level === 'High' ? '#c05621' : location.level === 'Moderate' ? '#b7791f' : '#16803c', fillOpacity: .95 }).bindPopup(`<strong>${esc(location.name)}</strong><br>${esc(location.city)}, ${esc(location.state)}<br>Risk ${location.riskScore}/100<br><button data-focus="${esc(location.id)}">View details</button>`); marker.addTo(layer); }); layer.addTo(map); map._firstFlushLayer = layer; if (state.locations.length) map.fitBounds(L.latLngBounds(state.locations.map(location => [location.lat, location.lon])), { padding: [25, 25], maxZoom: 9 }); }
-function showDetails(locationId) { const location = state.locations.find(item => item.id === locationId); if (!location) return; alert(`${location.name}\n${location.city}, ${location.state}\nRisk: ${location.riskScore}/100 · ${location.level}\nConfidence: ${location.confidence}\n\nFactors:\n${Object.entries(location.factors).map(([key, value]) => `${key}: ${Math.round(value)}`).join('\n')}\n\n${location.recommendation}`); }
+function showDetails(locationId) {
+  const location = state.locations.find(item => item.id === locationId);
+  if (!location) return;
+  notify(`${location.name} · ${location.city}, ${location.state} · Risk ${location.riskScore}/100 (${location.level}) · Confidence ${location.confidence}. ${location.recommendation}`, 'success');
+}
 document.addEventListener('click', event => { const element = event.target.closest('[data-focus]'); if (element) { event.preventDefault(); showDetails(element.dataset.focus); } });
 $('refresh').addEventListener('click', load); ['state', 'city', 'dryDays', 'rainfall'].forEach(id => $(id).addEventListener('change', load));
-$('actionForm').addEventListener('submit', async event => { event.preventDefault(); const response = await fetch(api('/actions'), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ locationId: $('actionLocation').value, type: $('actionType').value, notes: $('actionNotes').value }) }); if (!response.ok) return alert('Could not create the action.'); $('actionNotes').value = ''; await load(); });
-document.addEventListener('change', async event => { const actionId = event.target.dataset.action; if (!actionId) return; const response = await fetch(api(`/actions/${actionId}`), { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: event.target.value }) }); if (!response.ok) alert('Could not update the action.'); await load(); });
-$('observationForm').addEventListener('submit', async event => { event.preventDefault(); const file = $('photo').files[0]; if (file && file.size > 5 * 1024 * 1024) return alert('Photo must be 5 MB or smaller.'); const form = new FormData(); form.append('locationId', $('obsLocation').value); form.append('type', $('obsType').value); form.append('severity', $('severity').value); form.append('notes', $('obsNotes').value); if (file) form.append('photo', file); const response = await fetch(api('/observations'), { method: 'POST', body: form }); if (!response.ok) return alert('Observation failed. Check the fields and image type.'); $('obsNotes').value = ''; $('photo').value = ''; alert('Observation submitted and marked pending verification.'); await load(); });
+$('actionForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const response = await fetch(api('/actions'), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ locationId: $('actionLocation').value, type: $('actionType').value, notes: $('actionNotes').value }) });
+  if (!response.ok) return notify(await parseError(response, 'Could not create the action.'), 'error');
+  $('actionNotes').value = '';
+  notify('Action created successfully.', 'success');
+  await load();
+});
+document.addEventListener('change', async event => {
+  const actionId = event.target.dataset.action;
+  if (!actionId) return;
+  const response = await fetch(api(`/actions/${actionId}`), { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: event.target.value }) });
+  if (!response.ok) return notify(await parseError(response, 'Could not update the action.'), 'error');
+  notify('Action status updated.', 'success');
+  await load();
+});
+$('observationForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const file = $('photo').files[0];
+  if (file && file.size > 5 * 1024 * 1024) return notify('Photo must be 5 MB or smaller.', 'error');
+  const form = new FormData();
+  form.append('locationId', $('obsLocation').value);
+  form.append('type', $('obsType').value);
+  form.append('severity', $('severity').value);
+  form.append('notes', $('obsNotes').value);
+  if (file) form.append('photo', file);
+  const response = await fetch(api('/observations'), { method: 'POST', body: form });
+  if (!response.ok) return notify(await parseError(response, 'Observation failed. Check the fields and image type.'), 'error');
+  $('obsNotes').value = '';
+  $('photo').value = '';
+  notify('Observation submitted and marked pending verification.', 'success');
+  await load();
+});
 $('chatForm').addEventListener('submit', async event => { event.preventDefault(); const input = $('chatInput'); const message = input.value.trim(); if (!message) return; $('chatLog').insertAdjacentHTML('beforeend', `<div class="bubble user">${esc(message)}</div>`); input.value = ''; const response = await fetch(api('/chat'), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message }) }); const data = await response.json(); $('chatLog').insertAdjacentHTML('beforeend', `<div class="bubble assistant">${esc(data.answer || data.error)}<br><small>Source: ${esc(data.source || 'application state')}</small></div>`); $('chatLog').scrollTop = $('chatLog').scrollHeight; });
 try { const stream = new EventSource(api('/events')); stream.onopen = () => setStatus('Live updates connected'); stream.onerror = () => setStatus('Reconnecting · polling fallback', 'offline'); stream.addEventListener('state.updated', load); stream.addEventListener('observation.created', load); stream.addEventListener('action.updated', load); } catch { setStatus('Polling mode', 'fallback'); }
 load(); setInterval(load, 30000);

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
-const files = ['server.js', 'lambda.js', 'public/app.js', 'scripts/build.mjs', 'scripts/lint.mjs'];
+const files = ['server.js', 'lambda.js', 'public/app.js', 'scripts/build.mjs', 'scripts/lint.mjs', 'test/api.integration.test.js'];
 for (const file of files) {
   if (!fs.existsSync(file) || fs.statSync(file).size === 0) throw new Error(`Missing or empty file: ${file}`);
   const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
@@ -10,4 +10,4 @@ for (const file of files) {
     process.exit(result.status || 1);
   }
 }
-console.log('JavaScript syntax and repository preflight passed.');
+console.log('Preflight checks passed (syntax + required file validation).');

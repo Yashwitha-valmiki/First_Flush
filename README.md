@@ -34,6 +34,8 @@ npm run lint
 npm run build
 ```
 
+If `package-lock.json` exists, prefer `npm ci` in CI.
+
 ## Configuration
 
 `.env.example` contains safe local defaults. Copy it to `.env` only for local configuration. Do not commit `.env`, credentials, API keys, or private tokens.
@@ -85,6 +87,13 @@ window.FIRSTFLUSH_CONFIG = {
 ```
 
 The current repository uses a local file adapter for development. Do not represent it as cloud persistence until DynamoDB/S3 adapters are configured and tested. Restrict production CORS to the Amplify domain and use least-privilege IAM policies.
+
+## Limitations (important for demo claims)
+
+- Current persistence is local (`data/runtime.json`, `uploads/`) for demo and local mode.
+- No production authentication/authorization is implemented.
+- Copilot responses are grounded local summaries, not live cloud LLM calls.
+- Coverage is partial and based on seed + user-submitted records, not an official complete India-wide drain inventory.
 
 ## Data and safety
 
