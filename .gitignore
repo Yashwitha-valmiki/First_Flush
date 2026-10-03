@@ -1,0 +1,5 @@
+node_modules/
+.env
+uploads/
+data/runtime.json
+.DS_Store
