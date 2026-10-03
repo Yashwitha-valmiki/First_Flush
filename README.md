@@ -1,62 +1,64 @@
 # FirstFlush India
 
-**Act before polluted runoff reaches the water.**
+## Pre-rain runoff-risk prioritisation for urban water protection
 
-FirstFlush India is a real-time decision-support platform for prioritising urban drainage points before rainfall. After a dry period, rainfall can carry road dust, oil residue, tyre and brake particles, litter, construction sediment, and animal waste into storm drains and nearby water bodies.
+FirstFlush India helps environmental teams decide which drainage points should be inspected or protected before rainfall.
 
-The platform combines weather conditions with available drainage and field observations to help environmental teams decide:
+After a dry period, rainfall can carry road dust, oil residue, tyre and brake particles, litter, construction sediment, and animal waste into storm drains and nearby water bodies. FirstFlush India combines rainfall information with available drainage and field observations to produce an explainable priority list for preventive action.
 
-- Which drainage point should be inspected first?
-- Why is it high priority?
-- What preventive action is appropriate?
-- What evidence and confidence support the recommendation?
+> **FirstFlush India estimates relative runoff risk for prioritisation. It is not a laboratory water-quality monitoring system and does not claim exact pollutant concentrations.**
 
-FirstFlush India is designed for the **Heat and Water** track of the **WeMakeDevs × AWS Environmental Hacks** hackathon.
+## Why this matters
 
-> FirstFlush India estimates relative runoff risk for prioritisation. It does not measure laboratory water quality or claim exact pollutant concentrations.
+Teams cannot inspect every drain before a rainfall event. Drain-level information may also be incomplete, fragmented, or outdated. FirstFlush India helps close the gap between:
 
-## The problem
+```text
+Rainfall forecast → Risk prioritisation → Field action
+```
 
-Environmental teams often cannot inspect every drainage point before a rainfall event. Drain-level information may also be incomplete, fragmented, or outdated. This creates a decision gap between a rainfall forecast and preventive field action.
+The platform helps users identify:
 
-FirstFlush India addresses that gap by producing an explainable, ranked priority list for available drainage observations across Indian locations.
+- Which drainage point should be inspected first
+- Why that location has a higher estimated risk
+- What preventive action is appropriate
+- What observations and evidence support the recommendation
+- Whether an action is still pending or has been completed
 
 ## How it works
 
 ```text
-Weather and local observations
-              ↓
-    Explainable risk calculation
-              ↓
-     Ranked drainage locations
-              ↓
-      Recommended field action
-              ↓
- Observation, evidence, and status update
-              ↓
-       Updated priority information
+Weather information and local observations
+                    ↓
+        Explainable risk calculation
+                    ↓
+         Ranked drainage locations
+                    ↓
+          Recommended field action
+                    ↓
+     Observation, evidence, and status update
 ```
 
-## Core functionality
+## Features
 
-- Responsive environmental command centre
+- Responsive environmental operations dashboard
 - State and city filtering
-- Interactive risk map with an accessible location list
-- Weather integration with explicit live, fallback, and offline status
-- Automatic refresh and Server-Sent Events for state updates
-- Explainable relative-risk scoring
+- Risk-ranked location list
+- Interactive map with drainage locations
+- Weather provider status and update timestamp
+- Live updates through Server-Sent Events with polling fallback
+- Explainable relative-risk factors
 - Field observation submission
-- Optional image evidence upload with validation
-- Action tracking for inspection, cleaning, temporary screening, sampling, and monitoring
-- Pending-verification workflow for submitted observations
-- FirstFlush Copilot with grounded local responses
+- Optional image evidence upload
+- Action tracking for inspection, cleaning, screening, sampling, and monitoring
+- Pending-verification status for submitted observations
+- FirstFlush Copilot grounded in current application data
 - CSV priority report export
-- Local fallback mode for development and unreliable external services
-- AWS deployment configuration for the frontend and API
+- Local fallback mode for development
+- AWS deployment configuration
 
 ## Risk model
 
-The current deterministic model considers available signals such as:
+The current prioritisation model considers available signals such as:
 
 - Dry-period duration
 - Rainfall scenario
@@ -67,7 +69,7 @@ The current deterministic model considers available signals such as:
 - Proximity to a water body
 - Observation availability and confidence
 
-Each location returns:
+Each location receives:
 
 - Risk score
 - Risk level
@@ -77,15 +79,15 @@ Each location returns:
 - Recommended action
 - Last-updated timestamp
 
-The score is a relative operational priority, not a scientific measurement of pollution.
+The result is an operational estimate used to rank locations. It is not a measured pollution value.
 
-## Data transparency
+## Data coverage
 
-FirstFlush India supports Indian locations where data is available. It does not assume complete official drain-level coverage across the country.
+FirstFlush India is designed to support locations across India where usable data is available. It does not assume complete official drain-level coverage for every city.
 
-Records and responses should be interpreted using their provenance labels, including:
+The application distinguishes between:
 
-- Seed or estimated data
+- Seed or estimated location data
 - User-submitted observations
 - Pending verification
 - Verified field data
@@ -94,18 +96,17 @@ Records and responses should be interpreted using their provenance labels, inclu
 - Fallback weather
 - Partial location coverage
 
-Estimated, seed, cached, and fallback information must not be presented as official or live measurements.
+This distinction is important because estimated or user-submitted information should not be presented as official infrastructure data.
 
-## Run locally
+## Run the application locally
 
 ### Requirements
 
 - Node.js 20 or newer
 - npm
+- Internet access for live weather and map tiles
 
-### Install
-
-Clone the repository and enter the project directory:
+### Installation
 
 ```bash
 git clone https://github.com/Yashwitha-valmiki/First_Flush.git
@@ -113,86 +114,61 @@ cd First_Flush
 npm install
 ```
 
-Create the local environment file:
-
-```bash
-cp .env.example .env
-```
-
-Start the application:
+### Start the application
 
 ```bash
 npm start
 ```
 
-Open the website at:
+Open the application at:
 
 ```text
 http://localhost:8787
 ```
 
-The local application serves both the frontend and API from the same server.
+The local server provides both the website and the API.
 
 ### Development mode
-
-Development mode restarts the server when files change:
 
 ```bash
 npm run dev
 ```
 
-### Available commands
+### Project checks
 
 ```bash
-npm start       # Start the local application
-npm run dev     # Start with Node watch mode
-npm test        # Run automated tests
-npm run lint    # Run repository validation checks
-npm run build   # Validate and prepare the static frontend bundle
+npm test
+npm run lint
+npm run build
 ```
 
-### Local fallback storage
+## Configuration
 
-When running locally, the application uses:
+The repository contains `.env.example` as a list of supported configuration names and safe local defaults.
 
-- `data/runtime.json` for runtime records
-- `uploads/` for uploaded evidence files
+To configure the application locally:
 
-These files are intentionally ignored by Git. They are useful for development and demonstration, but they are not a suitable persistence layer for a multi-user production deployment.
-
-## Environment variables
-
-The project includes `.env.example`. Copy it to `.env` before local development.
-
-```dotenv
-PORT=8787
-NODE_ENV=development
-ALLOWED_ORIGIN=http://localhost:8787
-OPEN_METEO_BASE_URL=https://api.open-meteo.com/v1/forecast
-WEATHER_CACHE_TTL_MS=900000
-MAX_UPLOAD_BYTES=5242880
-API_BASE_URL=/api
-AWS_REGION=ap-south-1
-DYNAMODB_TABLE_NAME=
-S3_BUCKET=
-BEDROCK_MODEL_ID=
+```bash
+cp .env.example .env
 ```
 
-No API key is required for the Open-Meteo fallback used by local development. Keep cloud credentials and model keys on the server side. Never commit `.env` or secrets.
+Then change only the values required for your environment. The `.env` file is local configuration and is intentionally excluded from Git. Do not add passwords, private keys, cloud credentials, or API secrets to the repository.
 
-## API reference
+The application can run locally without paid API credentials by using the configured weather fallback.
 
-| Method | Endpoint | Description |
+## API endpoints
+
+| Method | Endpoint | Purpose |
 |---|---|---|
-| `GET` | `/api/health` | Returns service health and update information |
-| `GET` | `/api/state` | Returns filtered, ranked locations, actions, observations, and coverage status |
-| `GET` | `/api/weather` | Returns rainfall information and provider mode |
-| `GET` | `/api/events` | Opens the Server-Sent Events update stream |
-| `POST` | `/api/observations` | Creates an observation with optional image evidence |
-| `POST` | `/api/actions` | Creates a field action |
-| `PATCH` | `/api/actions/:actionId` | Updates an action status |
-| `POST` | `/api/chat` | Returns a grounded FirstFlush Copilot response |
-| `GET` | `/api/report.csv` | Downloads the current priority report |
+| `GET` | `/api/health` | Check API health and service status |
+| `GET` | `/api/state` | Retrieve filtered and ranked locations |
+| `GET` | `/api/weather` | Retrieve rainfall information and provider status |
+| `GET` | `/api/events` | Connect to live update events |
+| `POST` | `/api/observations` | Submit an observation with optional image evidence |
+| `POST` | `/api/actions` | Create a field action |
+| `PATCH` | `/api/actions/:actionId` | Update an action status |
+| `POST` | `/api/chat` | Ask the FirstFlush Copilot |
+| `GET` | `/api/report.csv` | Download the current priority report |
 
 Example health check:
 
@@ -200,32 +176,33 @@ Example health check:
 curl http://localhost:8787/api/health
 ```
 
-Example state request:
+Example filtered state request:
 
 ```bash
 curl "http://localhost:8787/api/state?state=Karnataka&dryDays=18&rainfall=heavy"
 ```
 
-## AWS deployment
+## Deployment
 
-The repository includes:
+### Frontend
 
-- `amplify.yml` for frontend hosting with AWS Amplify
-- `template.yaml` for the API deployment path using AWS SAM
-- `.env.example` for environment configuration
+The repository includes `amplify.yml` for AWS Amplify Hosting.
 
-### Frontend deployment with Amplify
+To deploy the frontend:
 
-1. Open AWS Amplify Hosting.
-2. Connect the `Yashwitha-valmiki/First_Flush` GitHub repository.
-3. Select the `main` branch.
-4. Use the repository `amplify.yml` build settings.
-5. Add production environment variables in Amplify if required.
-6. Deploy the frontend.
+1. Push the repository to GitHub.
+2. Open AWS Amplify Hosting.
+3. Connect the repository `Yashwitha-valmiki/First_Flush`.
+4. Select the `main` branch.
+5. Review the build settings from `amplify.yml`.
+6. Add deployment-specific configuration in the hosting environment.
+7. Deploy and open the generated Amplify URL.
 
-### API deployment with AWS SAM
+### API
 
-Install and configure the AWS SAM CLI, then run from the repository root:
+The repository includes `template.yaml` for the AWS SAM deployment path.
+
+After installing and configuring the AWS SAM CLI:
 
 ```bash
 sam validate --template-file template.yaml
@@ -233,51 +210,51 @@ sam build --template-file template.yaml
 sam deploy --guided --template-file .aws-sam/build/template.yaml
 ```
 
-After deployment, configure the frontend API base URL with the API Gateway URL. For a separately hosted frontend, set `API_BASE_URL` or the equivalent public configuration to the deployed API origin.
+If the frontend and API are deployed separately, configure the frontend to use the API Gateway URL.
 
-### Production storage note
+### Development storage and production storage
 
-The local development adapter uses JSON and filesystem storage. For a multi-user production deployment, use:
+Local development uses files under `data/` and `uploads/` so the project can run without cloud credentials.
 
-- Amazon DynamoDB for locations, observations, actions, alerts, and audit records
-- Amazon S3 for evidence images and generated reports
-- AWS Lambda and API Gateway for API execution
-- Amazon CloudWatch for logs and health monitoring
-- Amazon Cognito for authenticated operator, verifier, and administrator access
+For a multi-user production deployment, use:
+
+- Amazon DynamoDB for locations, observations, actions, and audit records
+- Amazon S3 for uploaded evidence and generated reports
+- AWS Lambda and API Gateway for the API
+- Amazon CloudWatch for logs and monitoring
+- Amazon Cognito for authenticated roles
 - Amazon SNS for optional notifications
 
-The repository must not claim cloud persistence until those production adapters are configured and tested in the AWS account.
-
-## Hackathon submission notes
-
-FirstFlush India is built for the **Heat and Water** track. Its environmental contribution is preventive prioritisation: converting rainfall and local drainage observations into a clear field-action queue before polluted runoff reaches nearby water bodies.
-
-The project is intentionally transparent about its limitations:
-
-- Drain coverage is partial.
-- Some records may be estimated, seeded, or pending verification.
-- Weather providers may be unavailable or stale.
-- Risk scores are not laboratory measurements.
-- The platform does not guarantee flood prevention or pollution reduction.
-- Physical interventions require trained or authorised personnel.
+Do not describe local file storage as cloud persistence. Configure and test the production adapters before treating the deployed system as a multi-user production service.
 
 ## Repository structure
 
 ```text
 .
-├── data/              Seed location data and local runtime storage
+├── data/              Seed location data and local runtime files
 ├── public/            Frontend HTML, CSS, JavaScript, and configuration
-├── test/              Automated API tests
-├── scripts/           Build and lint validation scripts
-├── server.js          Express API and local development server
-├── lambda.js          Serverless handler entry point
-├── template.yaml      AWS SAM deployment configuration
+├── test/              Automated tests
+├── scripts/           Build and validation scripts
+├── server.js          Express API and local server
+├── lambda.js          Serverless API handler
+├── template.yaml      AWS SAM configuration
 ├── amplify.yml        AWS Amplify build configuration
-├── .env.example       Documented environment variables
-├── .gitignore         Ignored local and generated files
-└── package.json       Project scripts and dependencies
+├── .env.example       Safe configuration template
+├── .gitignore         Local and generated file exclusions
+└── package.json       Scripts and dependencies
 ```
 
-## Safety and responsible use
+## Responsible use
 
-FirstFlush India is a decision-support tool. It does not replace environmental professionals, laboratory testing, municipal procedures, or emergency services. Only trained or authorised personnel should perform drain interventions or collect water samples.
+FirstFlush India is a decision-support tool. It does not replace environmental professionals, laboratory testing, emergency services, or municipal procedures.
+
+- Risk scores are estimates.
+- Drain coverage is partial.
+- Some records may require verification.
+- Weather data may be stale or unavailable.
+- Physical drain work and water sampling should only be performed by trained or authorised personnel.
+- The platform does not guarantee flood prevention or pollution reduction.
+
+## Project status
+
+FirstFlush India is an Environmental Hacks project focused on turning pre-rain environmental information into a clear, explainable, and actionable drainage-priority workflow.
