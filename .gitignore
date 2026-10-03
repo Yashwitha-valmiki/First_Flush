@@ -1,5 +1,13 @@
 node_modules/
 .env
+.env.*
+!.env.example
 uploads/
 data/runtime.json
 .DS_Store
+npm-debug.log*
+*.log
+coverage/
+.aws-sam/
+.sam/
+dist/
